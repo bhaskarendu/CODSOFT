@@ -1,0 +1,72 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Currency;
+import java.util.Locale;
+
+import org.json.JSONObject;
+
+public class CurrencyConverter {
+    public static void main(String[] args) {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+            // Step 1: Allow the user to choose the base currency and the target currency
+            System.out.print("Enter the base currency code (e.g., USD): ");
+            String baseCurrencyCode = reader.readLine().toUpperCase();
+
+            System.out.print("Enter the target currency code (e.g., EUR): ");
+            String targetCurrencyCode = reader.readLine().toUpperCase();
+
+            // Step 2: Fetch real-time exchange rates from the API
+            double exchangeRate = getExchangeRate(baseCurrencyCode, targetCurrencyCode);
+
+            if (exchangeRate == -1) {
+                System.out.println("Failed to fetch exchange rates. Please try again later.");
+                return;
+            }
+
+            // Step 3: Take input from the user for the amount they want to convert
+            System.out.print("Enter the amount to convert: ");
+            double amount = Double.parseDouble(reader.readLine());
+
+            // Step 4: Currency Conversion
+            double convertedAmount = amount * exchangeRate;
+
+            // Step 5: Display Result
+            Currency targetCurrency = Currency.getInstance(targetCurrencyCode);
+            System.out.println("Converted Amount: " + convertedAmount + " " + targetCurrency.getSymbol());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Function to fetch exchange rates from ExchangeRatesAPI.io
+    private static double getExchangeRate(String baseCurrencyCode, String targetCurrencyCode) throws IOException {
+        String apiKey = "YOUR_API_KEY"; // Replace with your actual API key
+        String apiUrl = "https://api.apilayer.com/exchangerates_data/latest?base=" + baseCurrencyCode + "&apikey=" + apiKey;
+
+        URL url = new URL(apiUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode == 200) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            JSONObject jsonResponse = new JSONObject(response.toString());
+            return jsonResponse.getJSONObject("rates").getDouble(targetCurrencyCode);
+        } else {
+            return -1; // Failed to fetch exchange rates
+        }
+    }
+}
